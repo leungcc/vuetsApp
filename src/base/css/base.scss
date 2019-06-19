@@ -1,0 +1,7 @@
+$--form-input-width: 200px;
+
+.required-star {color: red;}
+
+.single-line .el-input--small {
+  width: $--form-input-width;
+}

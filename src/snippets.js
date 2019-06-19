@@ -1,4 +1,4 @@
-{
+module.exports = {
 	"Print to console": {
 		"prefix": "vuets",
 		"body": [
