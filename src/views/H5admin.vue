@@ -43,18 +43,28 @@
         <p class="single-line">
           <label>选择活动icon：</label>
           <button @click="selectIconBtnCb">选择icon</button>
-          <img class="icon-img" src="" alt="">
-          <input type="file" ref="iconInput" class="hidden-file-input">
+          <span class="icon-img-wrap">
+            <img class="icon-img" :src="mainItemForm.h5Icon" alt="">
+          </span>
+          <input 
+            id="iconInput"
+            type="file" ref="iconInput" 
+            class="hidden-file-input" 
+            @change="uploadImgChange">
         </p>
         <p class="single-line">
           <label>选择活动背景图：</label>
           <button @click="selectBgBtnCb">选择bg</button>
-          <input type="file" ref="bgInput" class="hidden-file-input">
+          <input 
+            id="bgInput"
+            type="file" ref="bgInput" 
+            class="hidden-file-input" 
+            @change="uploadImgChange">
         </p>
-        <el-button type="primary">提交</el-button>
+        <el-button type="primary" class="submit-btn" @click="submitCb">提交</el-button>
       </div>
       <div class="form-img-wrap">
-        <img class="bg-img" src="" alt="">
+        <img class="bg-img" :src="mainItemForm.h5Bg" alt="">
       </div>
     </div>
   </div>
@@ -62,6 +72,9 @@
 
 <script lang='ts'>
 import { Component, Vue, Prop, Watch } from 'vue-property-decorator';
+import IMifH5admin from '@/entity/IMifH5admin';
+import IR from '@/entity/common/R';
+import { http_saveH5Style, http_test, http_h5StyleInfo } from '@/http';
 // import  from '@/components/ .vue'
 
 @Component({
@@ -73,17 +86,21 @@ import { Component, Vue, Prop, Watch } from 'vue-property-decorator';
 export default class componentName extends Vue {
   // props
   @Prop(String)
-  msg!: String;
+  msg!: string;
 
   // life hook
-  created(): void {
-    console.log('created hook')
-}
+  async created(): Promise<any> {
+    const _this = this;
+    console.log('created hook.. load styleInfo now')
+    const respAx_h5StyleInfo = await http_h5StyleInfo();
+    const resp_h5StyleInfo: IR = respAx_h5StyleInfo.data;
+    _this.setMainItemForm((<IMifH5admin>resp_h5StyleInfo.data));
+  }
 
   // data
-  private Father: String = 'haKing';
-  private Mother!: String;
-  private mainItemForm: Object = {
+  private Father: string = 'haKing';
+  private Mother!: string;
+  private mainItemForm: IMifH5admin = {
     h5Title: '',
     deadLine: '',
     h5Addr1: '',
@@ -100,9 +117,19 @@ export default class componentName extends Vue {
 
   // watch
   @Watch('msg', {immediate: true, deep: true})
-  onMsgChange(val: String, oldVal: String) {
+  onMsgChange(val: string, oldVal: string) {
 
   };
+
+  /**
+   * @desc 设置mainItemForm数据
+   */
+  private setMainItemForm(data: IMifH5admin) {
+    const _this = this;
+    for(let p in data) {
+      _this.mainItemForm[p] = data[p];
+    }
+  }
 
   // method
   public sayHi() {
@@ -119,13 +146,50 @@ export default class componentName extends Vue {
     this.uploadImg('bg');
   }
 
-  private uploadImg(type: String) {
+  private uploadImg(type: string) {
     const _this = this;
     
     let elImgInput = type === 'icon' ? _this.$refs.iconInput : _this.$refs.bgInput;
     let _event = document.createEvent("MouseEvents");
     _event.initEvent("click", true, true);
     (<HTMLElement>elImgInput).dispatchEvent(_event);
+  }
+
+  private uploadImgChange(e: Event) {
+    console.log(e)
+    const _this = this;
+    let el = <HTMLInputElement>e.srcElement;
+    if(!el)
+      return;
+    let inputId: string = el.id;
+    let adaptorKey: string = inputId === 'iconInput'? 'h5Icon':'h5Bg';
+    let file: File|null = el.files && (<FileList>el.files)[0] || null;
+    let fs: FileReader = new FileReader();
+    if(!file) {
+      console.error('file is null')
+      return;
+    }
+    fs.readAsDataURL(file);
+    fs.onload = (e: Event) => {
+      if(!fs.result) {
+        console.error('fs.result is null')
+        return;
+      }
+      _this.mainItemForm[adaptorKey] = <string>fs.result;
+    }
+  }
+
+  /**
+   * @desc 提交后台
+   */
+  public async submitCb(): Promise<any> {
+    console.log('submit')
+    const _this = this;
+    console.log(http_saveH5Style)
+    
+    //const resp = await http_saveH5Style(_this.mainItemForm, (config) => new Promise(function(){return {loading: true}}))
+    const resp = await http_test(_this.mainItemForm)
+    console.log(resp)
   }
 }
 </script>
@@ -136,13 +200,35 @@ export default class componentName extends Vue {
   margin: 0 auto;
   display: flex;
   justify-content: space-around;
+  .submit-btn {
+    width: 200px;
+    margin-top: 34px;
+  }
   .form-info-wrap {
     
   }
+  .icon-img-wrap {
+    width: 80px;
+    height: 40px;
+    border: 1px solid #ccc;
+    margin-left: 10px;
+    img{
+      width: 100%;
+      height: auto;
+      vertical-align: middle;
+    }
+  }
+  // .icon-img, .bg-img {
+    
+  // }
   .form-img-wrap {
     width: 200px;
     height: calc(#{200*1.77}px);
     background-color: #f1f1f1;
+    img {
+      width: 100%;
+      height: 100%;
+    }
   }
   .single-line {
     height: 40px;
@@ -163,11 +249,6 @@ export default class componentName extends Vue {
       width: 1px;
     }
   }
-  .icon-img {
-    width: 80px;
-    height: 40px;
-    background-color: #f1f1f1;
-    margin-left: 10px;
-  }
+
 }
 </style>
